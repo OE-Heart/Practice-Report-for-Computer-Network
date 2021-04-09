@@ -260,9 +260,9 @@ PC 机 IP 地址设计如下表所示。
 
 ​		路由器是互联网的主要节点设备。路由器通过路由表决定数据的转发。转发策略称为路由选择（routing），这也是路由器名称的由来 router，转发者）。作为不同网络之间互相连接的枢纽，路由器系统构成了基于 TCP/IP 的国际互联网络 Internet 的主体脉络，也可以说，路由器构成了 Internet 的骨架。在局域网中，为了实现不同网络之间的互联，仍然需要路由器，路由器是用来连接不同网段或网络的。
 
-​		在一个局域网中，如果不需与外界网络进行通信的话，内部网络的各主机都能识别其它主机 ，通过交换机就可以实现目的发送，根本用不上路由器来记忆局域网的各 主机的 MAC 地址。
+​		在一个局域网中，如果不需与外界网络进行通信的话，内部网络的各主机都能识别其它主机 ，通过交换机就可以实现目的发送，根本用不上路由器来记忆局域网的各主机的 MAC 地址。
 
-​		路由器的主要作用是识别不同网络 ，然后进行转发。路由器识别不同网络 的方法是通过识别不同网络的网络 ID 号进行的，所以为了保证路由转发成功，每个网络都必须有一个唯一的网络编号。路由器要识别另一个网络，首先要识别的就是对方网络的路由器 IP 地址的网络 ID，看是不是与目的 主机 地址中的网络 ID 号相一致。如果是就向这个网络的路由器发送，接收网络的路由器在接收到源 网络发来的报文后，根据报文中所包括的目的主机 IP 地址中的主机，ID 号来识别是发给哪一个 主机的，然后再直接发送。
+​		路由器的主要作用是识别不同网络 ，然后进行转发。路由器识别不同网络的方法是通过识别不同网络的网络 ID 号进行的，所以为了保证路由转发成功，每个网络都必须有一个唯一的网络编号。路由器要识别另一个网络，首先要识别的就是对方网络的路由器 IP 地址的网络 ID，看是不是与目的 主机 地址中的网络 ID 号相一致。如果是就向这个网络的路由器发送，接收网络的路由器在接收到源 网络发来的报文后，根据报文中所包括的目的主机 IP 地址中的主机，ID 号来识别是发给哪一个 主机的，然后再直接发送。
 
 ​		静态路由是由网络规划者根据网络拓扑，使用命令在路由器上配置的路由信息。这些静态路由信息指导报文发送，静态路由方式也不需要路由器进行计算，它完全依赖于网络规划者，当网络规模较大或网络拓扑经常发生改变时，网络管理员需要做的工作将会非常复杂并
 且容易产生错误。
@@ -296,22 +296,31 @@ PC 机 IP 地址设计如下表所示。
 
 | 设备 | 端口 |   IP 地址   |   子网掩码    |
 | :--: | :--: | :---------: | :-----------: |
-|  R1  | F0/0 |             | 255.255.255.0 |
+|  R1  | F0/0 |  10.0.0.1   | 255.255.255.0 |
 |  R1  | F1/0 | 192.168.0.1 | 255.255.255.0 |
 |  R1  | F1/1 | 192.168.1.1 | 255.255.255.0 |
-|  R2  | F0/0 |             | 255.255.255.0 |
+|  R2  | F0/0 |  10.0.0.2   | 255.255.255.0 |
 |  R2  | F1/0 | 192.168.2.1 | 255.255.255.0 |
 |  R2  | F1/1 | 192.168.3.1 | 255.255.255.0 |
 
 ​		路由器 R1 和 R2 之间通过 F0/0 端口相连。路由器 R1 和 R2 的 F1/0 端口和  F1/1 端口的 IP 地址分别是其所连接网络的默认网关地址。
 
+​		静态路由规划设计如下表所示。
+
+| 所在设备 | 目的网络(目的网络号/子网掩码) |        下一跳地址         |
+| :------: | :---------------------------: | :-----------------------: |
+|    R1    | 192.168.2.0    255.255.255.0  | 10.0.0.2(R2 的 F0/0 接口) |
+|    R1    | 192.168.3.0    255.255.255.0  | 10.0.0.2(R2 的 F0/0 接口) |
+|    R2    | 192.168.0.0    255.255.255.0  | 10.0.0.1(R1 的 F0/0 接口) |
+|    R2    | 192.168.1.0    255.255.255.0  | 10.0.0.1(R1 的 F0/0 接口) |
+
 #### 部署网络并配置 PC 机 IP 地址
 
 ##### 在 GNS3 中部署网络设备
 
-​		此步骤中所用的路由器使用 c7200 路由器来模拟；所用的二层交换机使用 c3600 路由器来模拟(使用时通过“no ip routing”命令关闭路由功能);所用的主机采用 GNS3 中自带的 VPCS 虚拟主机实现。
+​		此步骤中所用的路由器使用 c7200 路由器来模拟；所用的二层交换机使用 c3600 路由器来模拟(使用时通过“no ip routing”命令关闭路由功能)；所用的主机采用 GNS3 中自带的 VPCS 虚拟主机实现。
 
-​		按照前述网络拓扑设计,完成各个网络设备的部署、网线的连接，并启动整个网络。
+​		按照前述网络拓扑设计，完成各个网络设备的部署、网线的连接，并启动整个网络。
 
 ​		整个网络在 GNS3 中的拓扑结构以及接口连接如下图所示。
 
@@ -357,42 +366,71 @@ save
 
 ##### 配置路由器端口地址
 
+​		根据网络规划与设计，配置路由器 R1 的接口 IP 地址。配置时要先进入路由器全局配置模式，然后再进入接口模式，方可给该接口配置 IP 地址，配置命令如下。
 
+```
+config terminal
+interface fastethernet 0/0
+ip address 10.0.0.1 255.255.255.0
+no shutdown
+exit
+
+interface fastethernet 1/0
+ip address 192.168.0.1 255.255.255.0
+no shutdown
+exit
+
+interface fastethernet 1/1
+ip address 192.168.1.1 255.255.255.0
+no shutdown
+exit
+
+exit
+write
+```
+
+​		查看路由器 R1 的路由表信息，结果如下。
+
+<img src="picture/image-20210409174117624.png" alt="image-20210409174117624" style="zoom:80%;" />
+
+​		同理配置路由器 R2 的接口地址，并查看路由表信息，结果如下。
+
+<img src="picture/image-20210409175041605.png" alt="image-20210409175041605" style="zoom:80%;" />
 
 ##### 再次测试网络连通性
 
 ​		再次使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host5   |                |
-|  4   |  Host1   |  Host7   |                |
-|  5   |  Host3   |  Host4   |                |
-|  6   |  Host3   |  Host1   |                |
-|  7   |  Host3   |  Host5   |                |
-|  8   |  Host3   |  Host7   |                |
-|  9   |  Host5   |  Host6   |                |
-|  10  |  Host5   |  Host1   |                |
-|  11  |  Host5   |  Host3   |                |
-|  12  |  Host5   |  Host7   |                |
-|  13  |  Host7   |  Host8   |                |
-|  14  |  Host7   |  Host1   |                |
-|  15  |  Host7   |  Host3   |                |
-|  16  |  Host7   |  Host5   |                |
-|  17  |  Host1   |  R1/TP0  |                |
-|  18  |  Host1   |  R1/TP1  |                |
-|  19  |  Host1   |  R1/TP2  |                |
-|  20  |  Host1   |  R2/TP0  |                |
-|  21  |  Host1   |  R2/TP1  |                |
-|  22  |  Host1   |  R2/TP2  |                |
-|  23  |  Host5   |  R1/TP0  |                |
-|  24  |  Host5   |  R1/TP1  |                |
-|  25  |  Host5   |  R1/TP2  |                |
-|  26  |  Host5   |  R2/TP0  |                |
-|  27  |  Host5   |  R2/TP1  |                |
-|  28  |  Host5   |  R2/TP2  |                |
+| 序号 | 请求主机 | 响应主机  |        `ping`测试结果        |
+| :--: | :------: | :-------: | :--------------------------: |
+|  1   |  Host1   |   Host2   |           success            |
+|  2   |  Host1   |   Host3   |           success            |
+|  3   |  Host1   |   Host5   | Destination host unreachable |
+|  4   |  Host1   |   Host7   | Destination host unreachable |
+|  5   |  Host3   |   Host4   |           success            |
+|  6   |  Host3   |   Host1   |           success            |
+|  7   |  Host3   |   Host5   | Destination host unreachable |
+|  8   |  Host3   |   Host7   | Destination host unreachable |
+|  9   |  Host5   |   Host6   |           success            |
+|  10  |  Host5   |   Host1   | Destination host unreachable |
+|  11  |  Host5   |   Host3   | Destination host unreachable |
+|  12  |  Host5   |   Host7   |           success            |
+|  13  |  Host7   |   Host8   |           success            |
+|  14  |  Host7   |   Host1   | Destination host unreachable |
+|  15  |  Host7   |   Host3   | Destination host unreachable |
+|  16  |  Host7   |   Host5   |           success            |
+|  17  |  Host1   | R1 / F0/0 |           success            |
+|  18  |  Host1   | R1 / F1/0 |           success            |
+|  19  |  Host1   | R1 / F1/1 |           success            |
+|  20  |  Host1   | R2 / F0/0 |           timeout            |
+|  21  |  Host1   | R2 / F1/0 | Destination host unreachable |
+|  22  |  Host1   | R2 / F1/1 | Destination host unreachable |
+|  23  |  Host5   | R1 / F0/0 |           timeout            |
+|  24  |  Host5   | R1 / F1/0 | Destination host unreachable |
+|  25  |  Host5   | R1 / F1/1 | Destination host unreachable |
+|  26  |  Host5   | R2 / F0/0 |           success            |
+|  27  |  Host5   | R2 / F1/0 |           success            |
+|  28  |  Host5   | R2 / F1/1 |           success            |
 
 分析
 
@@ -400,95 +438,103 @@ save
 
 ##### 配置路由器 R1 的静态路由
 
-​		在路由器 R1 中，添加到达 192.168.2.0/24 和 192.168.3.0/24 这两个网络的路由信息。命令如下：
+​		在路由器 R1 中，添加到达 192.168.2.0/24 和 192.168.3.0/24 这两个网络的路由信息，配置命令如下。
 
+```
+config terminal
+ip route 192.168.2.0 255.255.255.0 10.0.0.2
+ip route 192.168.3.0 255.255.255.0 10.0.0.2
+```
 
+​		查看路由器 R1 的路由表信息，结果如下。
 
-##### 查看路由器 R1 的路由表信息
-
-
+<img src="picture/image-20210409190351580.png" alt="image-20210409190351580" style="zoom:80%;" />
 
 ##### 测试网络连通性
 
 ​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host5   |                |
-|  4   |  Host1   |  Host7   |                |
-|  5   |  Host3   |  Host4   |                |
-|  6   |  Host3   |  Host1   |                |
-|  7   |  Host3   |  Host5   |                |
-|  8   |  Host3   |  Host7   |                |
-|  9   |  Host5   |  Host6   |                |
-|  10  |  Host5   |  Host1   |                |
-|  11  |  Host5   |  Host3   |                |
-|  12  |  Host5   |  Host7   |                |
-|  13  |  Host7   |  Host8   |                |
-|  14  |  Host7   |  Host1   |                |
-|  15  |  Host7   |  Host3   |                |
-|  16  |  Host7   |  Host5   |                |
-|  17  |  Host1   |  R1/TP0  |                |
-|  18  |  Host1   |  R1/TP1  |                |
-|  19  |  Host1   |  R1/TP2  |                |
-|  20  |  Host1   |  R2/TP0  |                |
-|  21  |  Host1   |  R2/TP1  |                |
-|  22  |  Host1   |  R2/TP2  |                |
-|  23  |  Host5   |  R1/TP0  |                |
-|  24  |  Host5   |  R1/TP1  |                |
-|  25  |  Host5   |  R1/TP2  |                |
-|  26  |  Host5   |  R2/TP0  |                |
-|  27  |  Host5   |  R2/TP1  |                |
-|  28  |  Host5   |  R2/TP2  |                |
+| 序号 | 请求主机 | 响应主机  |        `ping`测试结果        |
+| :--: | :------: | :-------: | :--------------------------: |
+|  1   |  Host1   |   Host2   |           success            |
+|  2   |  Host1   |   Host3   |           success            |
+|  3   |  Host1   |   Host5   |           timeout            |
+|  4   |  Host1   |   Host7   |           timeout            |
+|  5   |  Host3   |   Host4   |           success            |
+|  6   |  Host3   |   Host1   |           success            |
+|  7   |  Host3   |   Host5   |           timeout            |
+|  8   |  Host3   |   Host7   |           timeout            |
+|  9   |  Host5   |   Host6   |           success            |
+|  10  |  Host5   |   Host1   | Destination host unreachable |
+|  11  |  Host5   |   Host3   | Destination host unreachable |
+|  12  |  Host5   |   Host7   |           success            |
+|  13  |  Host7   |   Host8   |           success            |
+|  14  |  Host7   |   Host1   | Destination host unreachable |
+|  15  |  Host7   |   Host3   | Destination host unreachable |
+|  16  |  Host7   |   Host5   |           success            |
+|  17  |  Host1   | R1 / F0/0 |           success            |
+|  18  |  Host1   | R1 / F1/0 |           success            |
+|  19  |  Host1   | R1 / F1/1 |           success            |
+|  20  |  Host1   | R2 / F0/0 |           timeout            |
+|  21  |  Host1   | R2 / F1/0 |           timeout            |
+|  22  |  Host1   | R2 / F1/1 |           timeout            |
+|  23  |  Host5   | R1 / F0/0 |           success            |
+|  24  |  Host5   | R1 / F1/0 | Destination host unreachable |
+|  25  |  Host5   | R1 / F1/1 | Destination host unreachable |
+|  26  |  Host5   | R2 / F0/0 |           success            |
+|  27  |  Host5   | R2 / F1/0 |           success            |
+|  28  |  Host5   | R2 / F1/1 |           success            |
 
 #### 配置路由器 R2 的静态路由并测试连通性
 
 ##### 配置路由器 R2 的静态路由
 
+​		参考路由器 R1 的静态路由配置，在路由器 R2 中，添加所需要的静态路由信息，配置命令如下。
 
+```
+config terminal
+ip route 192.168.0.0 255.255.255.0 10.0.0.1
+ip route 192.168.1.0 255.255.255.0 10.0.0.1
+```
 
-​		参考路由器 R1 的静态路由配置，在路由器 R2 中，添加所需要的静态路由信息。注意目的网络和下一跳地址的变化。
+​		查看路由器 R2 的路由表信息，结果如下。
 
-##### 查看路由器 R2 的路由表信息
-
-
+<img src="picture/image-20210409192501936.png" alt="image-20210409192501936" style="zoom:80%;" />
 
 ##### 测试网络连通性
 
 ​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host5   |                |
-|  4   |  Host1   |  Host7   |                |
-|  5   |  Host3   |  Host4   |                |
-|  6   |  Host3   |  Host1   |                |
-|  7   |  Host3   |  Host5   |                |
-|  8   |  Host3   |  Host7   |                |
-|  9   |  Host5   |  Host6   |                |
-|  10  |  Host5   |  Host1   |                |
-|  11  |  Host5   |  Host3   |                |
-|  12  |  Host5   |  Host7   |                |
-|  13  |  Host7   |  Host8   |                |
-|  14  |  Host7   |  Host1   |                |
-|  15  |  Host7   |  Host3   |                |
-|  16  |  Host7   |  Host5   |                |
-|  17  |  Host1   |  R1/TP0  |                |
-|  18  |  Host1   |  R1/TP1  |                |
-|  19  |  Host1   |  R1/TP2  |                |
-|  20  |  Host1   |  R2/TP0  |                |
-|  21  |  Host1   |  R2/TP1  |                |
-|  22  |  Host1   |  R2/TP2  |                |
-|  23  |  Host5   |  R1/TP0  |                |
-|  24  |  Host5   |  R1/TP1  |                |
-|  25  |  Host5   |  R1/TP2  |                |
-|  26  |  Host5   |  R2/TP0  |                |
-|  27  |  Host5   |  R2/TP1  |                |
-|  28  |  Host5   |  R2/TP2  |                |
+| 序号 | 请求主机 | 响应主机  | `ping`测试结果 |
+| :--: | :------: | :-------: | :------------: |
+|  1   |  Host1   |   Host2   |    success     |
+|  2   |  Host1   |   Host3   |    success     |
+|  3   |  Host1   |   Host5   |    success     |
+|  4   |  Host1   |   Host7   |    success     |
+|  5   |  Host3   |   Host4   |    success     |
+|  6   |  Host3   |   Host1   |    success     |
+|  7   |  Host3   |   Host5   |    success     |
+|  8   |  Host3   |   Host7   |    success     |
+|  9   |  Host5   |   Host6   |    success     |
+|  10  |  Host5   |   Host1   |    success     |
+|  11  |  Host5   |   Host3   |    success     |
+|  12  |  Host5   |   Host7   |    success     |
+|  13  |  Host7   |   Host8   |    success     |
+|  14  |  Host7   |   Host1   |    success     |
+|  15  |  Host7   |   Host3   |    success     |
+|  16  |  Host7   |   Host5   |    success     |
+|  17  |  Host1   | R1 / F0/0 |    success     |
+|  18  |  Host1   | R1 / F1/0 |    success     |
+|  19  |  Host1   | R1 / F1/1 |    success     |
+|  20  |  Host1   | R2 / F0/0 |    success     |
+|  21  |  Host1   | R2 / F1/0 |    success     |
+|  22  |  Host1   | R2 / F1/1 |    success     |
+|  23  |  Host5   | R1 / F0/0 |    success     |
+|  24  |  Host5   | R1 / F1/0 |    success     |
+|  25  |  Host5   | R1 / F1/1 |    success     |
+|  26  |  Host5   | R2 / F0/0 |    success     |
+|  27  |  Host5   | R2 / F1/0 |    success     |
+|  28  |  Host5   | R2 / F1/1 |    success     |
 
 分析
 
