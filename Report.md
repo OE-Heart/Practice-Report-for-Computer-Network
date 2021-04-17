@@ -83,172 +83,225 @@
 
 ### 1.2.2 实验内容及其步骤
 
-#### 使用二层交换机构建简单局域网
-
-##### 网络拓扑设计
-
-​		此步骤中的局域网由1台交换机（SW1）与4台 PC 机（Host1~Host4）组成，网络拓扑结构如下图所示。
-
-##### IP 地址设计
-
-PC 机 IP 地址设计如下表所示。
-
-| 设备  | IP 地址 |   子网掩码    | 网关 |
-| :---: | :-----: | :-----------: | :--: |
-| Host1 |         | 255.255.255.0 |      |
-| Host2 |         | 255.255.255.0 |      |
-| Host3 |         | 255.255.255.0 |      |
-| Host4 |         | 255.255.255.0 |      |
-
-##### 在 GNS3 中部署网络设备
-
-​		此步骤中的交换机使用 c3600 路由器来模拟，使用时通过”no ip routing”命令关闭路由功能。主机采用 GNS3 中自带的 VPCS 虚拟主机实现。 网络设备部署过程如下。
-
-
-
-##### 测试网络连通性
-
-​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
-
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host4   |                |
-|  4   |  Host2   |  Host1   |                |
-|  5   |  Host2   |  Host3   |                |
-|  6   |  Host2   |  Host4   |                |
-|  7   |  Host3   |  Host1   |                |
-|  8   |  Host3   |  Host2   |                |
-|  9   |  Host3   |  Host4   |                |
-|  10  |  Host4   |  Host1   |                |
-|  11  |  Host4   |  Host2   |                |
-|  12  |  Host4   |  Host3   |                |
-
-分析
-
-#### 使用三层交换机实现 VLAN 间通信
+#### 网络规划与设计
 
 ##### 网络拓扑设计
 
 ​		此步骤中的局域网由1台路由交换机（R1）、2台交换机（SW1 和 SW2）与6台 PC 机（Host1~Host6）组成，网络拓扑结构如下图所示。
 
-
+![topo3](picture/topo3.png)
 
 ##### IP 地址与 VLAN 划分设计
 
 ​		PC 机 IP 地址设计如下表所示。
 
-| 设备  | IP 地址 |   子网掩码    | 网关 |
-| :---: | :-----: | :-----------: | :--: |
-| Host1 |         | 255.255.255.0 |      |
-| Host2 |         | 255.255.255.0 |      |
-| Host3 |         | 255.255.255.0 |      |
-| Host4 |         | 255.255.255.0 |      |
-| Host5 |         | 255.255.255.0 |      |
-| Host6 |         | 255.255.255.0 |      |
+| 设备  |    IP 地址    |   子网掩码    |     网关     |
+| :---: | :-----------: | :-----------: | :----------: |
+| Host1 | 10.0.101.1/24 | 255.255.255.0 | 10.0.101.254 |
+| Host2 | 10.0.101.2/24 | 255.255.255.0 | 10.0.101.254 |
+| Host3 | 10.0.102.3/24 | 255.255.255.0 | 10.0.102.254 |
+| Host4 | 10.0.101.4/24 | 255.255.255.0 | 10.0.101.254 |
+| Host5 | 10.0.101.5/24 | 255.255.255.0 | 10.0.101.254 |
+| Host6 | 10.0.102.6/24 | 255.255.255.0 | 10.0.102.254 |
 
 ​		路由器端口 IP 设计如下表所示。
 
-| 设备 | IP 地址 |           说明            |
-| :--: | :-----: | :-----------------------: |
-|  R1  |         | 配置给虚拟交换接口 VLAN10 |
-|  R1  |         | 配置给虚拟交换接口 VLAN20 |
+| 设备 |     IP 地址     |            说明            |
+| :--: | :-------------: | :------------------------: |
+|  R1  | 10.0.101.254/24 | 配置给虚拟交换接口 VLAN 10 |
+|  R1  | 10.0.102.254/24 | 配置给虚拟交换接口 VLAN 20 |
 
 ​		交换机 VLAN 划分设计如下表所示。
 
-| 设备 | 端口号 | VLAN ID | VLAN Name | 端口性质 |
-| :--: | :----: | :-----: | :-------: | :------: |
-| SW1  |        |         |           |          |
-| SW1  |        |         |           |          |
-| SW1  |        |         |           |          |
-| SW1  |        |         |           |          |
-| SW2  |        |         |           |          |
-| SW2  |        |         |           |          |
-| SW2  |        |         |           |          |
-| SW2  |        |         |           |          |
-|  R1  |        |         |           |          |
-|  R1  |        |         |           |          |
+| 设备 | 端口 | VLAN ID | VLAN Name |  端口性质   |
+| :--: | :--: | :-----: | :-------: | :---------: |
+| SW1  | F0/0 |    /    |     /     | Trunk Port  |
+| SW1  | F0/1 | VLAN 10 | VLAN0010  | access Port |
+| SW1  | F0/2 | VLAN 10 | VLAN0010  | access Port |
+| SW1  | F0/3 | VLAN 20 | VLAN0020  | access Port |
+| SW2  | F0/0 |    /    |     /     | Trunk Port  |
+| SW2  | F0/1 | VLAN 10 | VLAN0020  | access Port |
+| SW2  | F0/2 | VLAN 10 | VLAN0020  | access Port |
+| SW2  | F0/3 | VLAN 20 | VLAN0020  | access Port |
+|  R1  | F0/1 |    /    |     /     | Trunk Port  |
+|  R1  | F0/2 |    /    |     /     | Trunk Port  |
+
+#### 部署网络并配置 PC 机 IP 地址
 
 ##### 在 GNS3 中部署网络设备
 
-​		此步骤中的路由交换机使用c3600路由器来模拟，使用时通过”ip routing”命令开启三层路由功能。二层交换机使用c3600路由器来模拟，使用时通过”no ip routing”命令关闭路由功能。主机采用 GNS3 中自带的 VPCS 虚拟主机实现。 网络设备部署过程如下。
+​		此步骤中的路由交换机使用c3600路由器来模拟，使用时通过”ip routing”命令开启三层路由功能。二层交换机使用c3600路由器来模拟，使用时通过”no ip routing”命令关闭路由功能。主机采用 GNS3 中自带的 VPCS 虚拟主机实现。 
 
+​		按照前述网络拓扑设计，完成各个网络设备的部署、网线的连接，并启动整个网络。
 
+​		整个网络在 GNS3 中的拓扑结构以及接口连接如下图所示。
 
-##### 对二层交换机 SW1 进行配置并测试网络连通性
+![topo4](picture/topo4.png)
+
+##### 配置 Host1~Host6 的 IP 地址
+
+​		打开 Host1 的命令控制台窗口，配置并保存 IP 地址(10.0.101.1/24)、子网掩码(255.255.255.0)和默认网关(10.0.101.254)地址，配置命令如下。
+
+```
+ip 10.0.101.1/24 255.255.255.0 10.0.101.254
+save
+```
+
+![image-20210417092714043](picture/image-20210417092714043.png)
+
+​		同理，按照前述 IP 地址设计，配置并保存 Host2~Host6 的 IP 地址、子网掩码、默认网关。
+
+#### 对二层交换机 SW1 进行配置并测试网络连通性
 
 ​		开启交换机 SW1，打开 SW1 的命令控制台窗口，按照规划在交换机 SW1 上配置 VLAN，并将相关端口设置成 access 端口或 trunk 端口。 配置命令如下所示 。
 
+```
+vlan database
+vlan 10
+vlan 20
+exit
 
+config terminal
+interface f0/1
+switchport mode access
+switchport access vlan 10
+exit
+
+interface f0/2
+switchport mode access
+switchport access vlan 10
+exit
+
+interface f0/3
+switchport mode access
+switchport access vlan 20
+exit
+
+exit
+```
+
+​		此时查看该交换机 vlan 的简要情况如下。
+
+![image-20210417094231158](picture/image-20210417094231158.png)
+
+```
+config terminal
+interface f0/0
+switchport trunk encapsulation dot1q
+switchport mode trunk
+exit
+exit
+```
+
+​		查看交换机上 trunk 端口的信息如下。
+
+![image-20210417094435322](picture/image-20210417094435322.png)
 
 ​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host4   |                |
-|  4   |  Host1   |  Host5   |                |
-|  5   |  Host1   |  Host6   |                |
+| 序号 | 请求主机 | 响应主机 |          `ping`测试结果           |
+| :--: | :------: | :------: | :-------------------------------: |
+|  1   |  Host1   |  Host2   |              success              |
+|  2   |  Host1   |  Host3   | host (10.0.101.254) not reachable |
+|  3   |  Host1   |  Host4   |  host (10.0.101.4) not reachable  |
+|  4   |  Host1   |  Host5   |  host (10.0.101.5) not reachable  |
+|  5   |  Host1   |  Host6   | host (10.0.101.254) not reachable |
 
 分析
 
-##### 对二层交换机 SW2 进行配置并测试网络连通性
+#### 对二层交换机 SW2 进行配置并测试网络连通性
 
-​		开启交换机 SW2，打开 SW2 的命令控制台窗口，按照规划在交换机 SW2 上配置 VLAN，并将相关端口设置成 access 端口或 trunk 端口。 配置命令如下所示 。
+​		开启交换机 SW2，打开 SW2 的命令控制台窗口，按照规划在交换机 SW2 上配置 VLAN，并将相关端口设置成 access 端口或 trunk 端口。 配置过程同 SW1。
 
+​		配置完成后分别查看交换机 vlan 的简要情况和交换机上 trunk 端口的信息如下。
 
+![image-20210417095240478](picture/image-20210417095240478.png)
+
+![image-20210417095515758](picture/image-20210417095515758.png)
 
 ​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host4   |                |
-|  4   |  Host1   |  Host5   |                |
-|  5   |  Host1   |  Host6   |                |
+| 序号 | 请求主机 | 响应主机 |          `ping`测试结果           |
+| :--: | :------: | :------: | :-------------------------------: |
+|  1   |  Host1   |  Host2   |              success              |
+|  2   |  Host1   |  Host3   | host (10.0.101.254) not reachable |
+|  3   |  Host1   |  Host4   |  host (10.0.101.4) not reachable  |
+|  4   |  Host1   |  Host5   |  host (10.0.101.5) not reachable  |
+|  5   |  Host1   |  Host6   | host (10.0.101.254) not reachable |
 
 分析
 
-##### 在三层交换机 R1 中创建 VLAN、设置 trunk 接口并测试网络连通性
+#### 在三层交换机 R1 中创建 VLAN、设置 trunk 接口并测试网络连通性
 
 ​		此步骤中，在三层交换机 R1上创建 VLAN10 和 VLAN20，但是不开启三层交换机 R1的路由功能（no ip routing），不起用交换机虚拟接口 SVI），只是根据网络拓扑的设计将三层交换机 R1上与二层交换机 SW1 和 SW2 相连的端口设置为 trunk 模式，然后测试跨交换机相同 VLAN 之间的通信和不同 VLAN之间的通信。
 
 ​		开启三层交换机 R1，打开其命令控制台窗口，配置命令如下所示 。
 
+```
+vlan database
+vlan 10
+vlan 20
+exit
 
+config termianl
+interface range f0/1 -2
+switchport trunk encapsulation dot1q
+switchport mode trunk
+exit
+
+no ip routing
+exit
+```
+
+​		查看交换机上的 trunk 端口如下。
+
+![image-20210417100746790](picture/image-20210417100746790.png)
 
 ​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
-| 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
-| :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host4   |                |
-|  4   |  Host1   |  Host5   |                |
-|  5   |  Host1   |  Host6   |                |
+| 序号 | 请求主机 | 响应主机 |          `ping`测试结果           |
+| :--: | :------: | :------: | :-------------------------------: |
+|  1   |  Host1   |  Host2   |              success              |
+|  2   |  Host1   |  Host3   | host (10.0.101.254) not reachable |
+|  3   |  Host1   |  Host4   |              success              |
+|  4   |  Host1   |  Host5   |              success              |
+|  5   |  Host1   |  Host6   | host (10.0.101.254) not reachable |
 
 分析
 
-##### 配置三层交换机 R1 的 SVI 接口、开启路由功能并测试网络连通性
+#### 配置三层交换机 R1 的 SVI 接口、开启路由功能并测试网络连通性
 
 ​		此步骤中， 启用三层交换机 R1上 VLAN10 和 VLAN20的 SVI 接口，给他们配置 IP 地址。 开启三层交换机 R1的路由功能（ip routing），然后测试跨交换机相同 VLAN 之间的通信和不同 VLAN 之间的通信。
 
 ​		打开 R1 的命令控制台窗口，配置命令如下所示 。
 
+```
+config terminal
+interface vlan 10
+ip address 10.0.101.254 255.255.255.0
+exit
 
+interface vlan 20
+ip address 10.0.102.254 255.255.255.0
+exit
+
+ip routing
+exit
+```
+
+​		此时查看路由表信息如下。
+
+![image-20210417101552726](picture/image-20210417101552726.png)
 
 ​		使用`ping`命令，测试各 PC 之间的连通性，通信结果如下表所示。
 
 | 序号 | 请求主机 | 响应主机 | `ping`测试结果 |
 | :--: | :------: | :------: | :------------: |
-|  1   |  Host1   |  Host2   |                |
-|  2   |  Host1   |  Host3   |                |
-|  3   |  Host1   |  Host4   |                |
-|  4   |  Host1   |  Host5   |                |
-|  5   |  Host1   |  Host6   |                |
+|  1   |  Host1   |  Host2   |    success     |
+|  2   |  Host1   |  Host3   |    success     |
+|  3   |  Host1   |  Host4   |    success     |
+|  4   |  Host1   |  Host5   |    success     |
+|  5   |  Host1   |  Host6   |    success     |
 
 分析
 
