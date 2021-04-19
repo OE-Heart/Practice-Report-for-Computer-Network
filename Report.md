@@ -601,6 +601,195 @@ ip route 192.168.1.0 255.255.255.0 10.0.0.1
 
 ---
 
+## 2.2 电子邮件服务架构
 
+### 2.2.1 实验原理
+
+首先我们简要介绍一些邮件发送过程中的基本概念：
+
+- MUA（Mail User Agent）：用户邮件代理——用户邮件代理是具有发送电子邮件能力，能够从电子邮件服务器为用户获取邮件且进行管理的任意客户端程序，常见的MUA有Outlook，Foxmail和Thunderbird等。
+
+- MTA（Mail Transfer Agent）：邮件传输代理——邮件传输代理在MUA的角度看来与邮件服务器的概念是重合的。其是一种能够接受客户端电子邮件，存储然后将其发送给正确的接收MTA；接收方的MTA则检查收到的电子邮件是否在其接收范围，再决定是否将其投送至MDA。MTA是整个电子邮件系统中的核心部分，例如Postfix和Exchange都属于MTA范畴。
+
+- MDA（Mail Delivery Agent）：邮件分发代理——邮件分发代理的作用是从MTA接收邮件且将其存储到对应用户的邮件目录下，允许用户获取其邮件。且很多时候MDA直接集成于MTA中，在整个电子邮件系统中经常被忽略。如dovecot就属于MDA的范畴。
+
+- SMTP（Simple Mail Transfer Protocol）：简单邮件传输协议——SMTP是一种提供可靠且有效的电子邮件传输的协议，其规定了在两个相互通信的SMTP进程之间应如何交换信息。当两个SMTP进程交换信息时，负责发送邮件的SMTP进程被称为SMTP客户端，而负责接收邮件的SMTP进程就是SMTP服务器。
+
+- ESMTP（Extended SMTP）：最初的SMTP是为传送ASCII码设计的，虽然后来有了MIME可以传送二进制数据，但在传送非ASCII码的长报文时，在网络上的传输效率是不高的；此外SMTP传送的邮件是明文，不利于信息安全。为了解决该问题，2008年RFC 5321对SMTP进行了扩充，称为扩充的SMTP，其在原有的命令框架中添加扩展参数，使得SMTP的功能被大大拓展了。
+
+- POP3（Post Office Protocol Version 3）/IMAP（Internet Message Access Protocol）：邮局协议版本3/网际报文存取协议——POP3与IMAP的功能都是从电子邮件服务器读取数据到本地，两者有明显的差别，主要的区别是POP3读取服务器的邮件后，服务器将删除该邮件，不够方便；而IMAP则是将邮件复制到本地且保持同步。具体的功能差别见下表：
+
+  | 操作位置   | 操作内容                     | IMAP                 | POP3         |
+  | ---------- | ---------------------------- | -------------------- | ------------ |
+  | 收件箱     | 阅读、标记、移动、删除邮件等 | 客户端与邮箱同步更新 | 仅在客户端内 |
+  | 发件箱     | 保存到已发送                 | 客户端与邮箱同步更新 | 仅在客户端内 |
+  | 创建文件夹 | 新建自定义的文件夹           | 客户端与邮箱同步更新 | 仅在客户端内 |
+  | 草稿       | 保存草稿                     | 客户端与邮箱同步更新 | 仅在客户端内 |
+  | 垃圾文件夹 | 接收并移入垃圾文件夹的邮件   | 支持                 | 不支持       |
+  | 广告邮件   | 接收并移入广告邮件夹的邮件   | 支持                 | 不支持       |
+
+然后，在抽象的层面上，我们考察一封邮件从发送到被收件人获取的生命周期，其大致可以被概括为4个步骤：
+
+1. MUA通过SMTP向本地MTA发送邮件，电子邮件被本地MTA转储
+2. 本地MTA尝试发送（可能经过MTA中继），直到被接收方MTA接收或者超出指定的时间发送失败
+3. 接收方MTA将收到的电子邮件传送给MDA，由MDA将电子邮件存储到收件者的邮件目录
+4. MUA通过POP3/IMAP从MDA获取电子邮件
+
+```
+发送邮件:    MUA ----> MTA ----> (MTA relays) ----> MDA
+接收邮件:    MUA <--------------------------------- MDA
+```
+
+最后，简要介绍本次实验需要用到的Docker与Docker Compose。Docker是一个开源的应用容器引擎，让开发者可以打包他们的应用以及依赖包到一个可移植的镜像中，然后发布到需要部署服务的机器上，可以高效、安全地架构服务。Compose是用于定义和运行多容器Docker应用程序的工具。通过Compose，可以使用 YAML 文件来配置Docker应用程序，方便的从YAML配置文件创建并启动所需服务。
+
+### 2.2.2 实验环境
+
+本部分实验使用一台操作系统为Arch Linux，内核为5.11.15-arch1-2，图形界面采用KDE Plasma 5的个人计算机。系统装有抓包分析的Wireshark与提供虚拟机支持的VMware，用于模拟不同邮件服务器组网与分析电子邮件服务器运行过程中网络上产生的通信；另外，宿主计算机上配置使用的邮件客户端为Thunderbird，用于代表MUA执行电子邮件的发送与获取。
+
+VMware安装维护两台系统为CentOS 8的虚拟机，需要配置网络连接，支持提供docker服务，两台虚拟机将代表两个互相独立的电子邮件服务器。
+
+### 2.2.3 实验内容与结果
+
+#### 2.2.3.1 环境准备
+
+检查VMware为虚拟机提供的网络环境，实验中虚拟机利用NAT的联网，连接因特网时与主机共享IP。
+
+<img src="mail-pic/1.png" alt="network" style="zoom:80%;" />
+
+下载CentOS 8的ISO文件，安装第一台虚拟机命名为mailserver1，由于测试环境搭建在虚拟机上，方便起见直接使用root账户进行测试。虚拟机安装完成后，参考`https://docs.docker.com/engine/install/centos/`与`https://docs.docker.com/compose/install/`文档页面安装docker与docker-compose。
+
+![docker](mail-pic/2.png)
+
+本实验选择利用开源项目`docker-mailserver`架构邮件服务器，可以在`https://github.com/docker-mailserver`与`https://docker-mailserver.github.io/docker-mailserver/v9.1/`找到其源代码与使用文档；这是一个简单但功能齐全的邮件服务器，其于整个电子邮件系统中，位于MTA与MDA的位置，项目内部使用非常流行的开源软件postfix和dovecot分别实现相应功能且附带一份可用的默认配置，非常适合用来快速架构邮件服务与进行测试，避免过于琐碎的配置细节掩盖本次实验的核心内容。
+
+确认docker服务可用后，运行命令`docker pull docker.io/mailserver/docker-mailserver:latest`，从镜像源拉取`docker-mailserver:latest`到本地，运行`docker image ls`可以看到本地的可用镜像。
+
+![docker image list](mail-pic/3.png)
+
+创建mail文件夹，根据文档说明获取对应镜像版本的配置文件与管理脚本（需配置代理服务器，此处略过）。
+
+```
+wget -O .env https://raw.githubusercontent.com/docker-mailserver/docker-mailserver/master/compose.env
+wget https://raw.githubusercontent.com/docker-mailserver/docker-mailserver/master/docker-compose.yml
+wget https://raw.githubusercontent.com/docker-mailserver/docker-mailserver/master/mailserver.env
+wget https://raw.githubusercontent.com/docker-mailserver/docker-mailserver/v9.1.0/setup.sh
+# 赋予脚本执行的权限
+chmod a+x ./setup.sh
+```
+
+配置好mailserver1后，将其复制，修改主机名为mailserver2，作为实验中另一台邮件服务器。
+
+另外，本实验在VMware创建的虚拟局域网vmnet8中进行，采用DHCP的方式对IP地址进行分配，但在本次实验期间，可认为宿主机与虚拟机均具有固定不变的IP地址。
+
+| 主机名称      | IP地址         |
+| ------------- | -------------- |
+| fyy（宿主机） | 192.168.36.1   |
+| mailserver1   | 192.168.36.130 |
+| mailserver2   | 192.168.36.131 |
+
+#### 2.2.3.2 邮件服务器启动与配置
+
+本实验中，我们认为`mailserver1`匹配域名`mailserver1.com`，而`mailserver2`匹配域名`mailserver2.com`，由于我们不实际拥有这两个域名的所有权，且实验用的两台虚拟机共享同一个公网IP，我们不能使用因特网上的DNS服务器完成翻译域名到IP步骤。本实验采用修改hosts文件指定域名与IP地址映射关系的方式进行替代实现。
+
+由于postfix默认绕过hosts文件，需要于config目录下提供额外的配置文件`postfix-main.cf`，文件内容指定smtp在进行电子邮件发送时的寻址方式。
+
+```
+smtp_host_lookup = native
+```
+
+同时需要修改docker-compose.yml配置文件指定额外的host配置用于寻址，此处以`mailserver1`为例，`mailserver2`照此方式修改指定`mailserver1.com`与映射的IP地址即可。
+
+```yaml
+services:
+  mailserver:
+	...
+    extra_hosts:
+      - "mailserver2.com:192.168.36.131"
+  	...
+```
+
+切换至mail目录下，输入`docker-compose up -d mailserver`从`docker-compose.yml`启动邮件服务器，`-d`选项代表`detached mode`，代表后台启动服务，与当前终端分离，仅回显启动容器的名称。
+
+![docker-compose up](mail-pic/4.png)
+
+使用`docker-compose ps`查看服务状态，注意在默认设置中POP3与110端口已经被弃用，实验中仅采用IMAP从MDA获取邮件。
+
+![docker-compose status](mail-pic/5.png)
+
+`mailserver2`的启动操作与上述操作完全一致，可以直观体会到docker部署与docker-compose管理的优势。
+
+完成服务器的部署后我们需要创建测试用的账户，我们可以方便地使用`setup.sh`脚本完成。
+
+```
+./setup.sh help
+	...
+	COMMAND email :=
+        ./setup.sh email add <EMAIL ADDRESS> [<PASSWORD>]
+        ./setup.sh email update <EMAIL ADDRESS> [<PASSWORD>]
+        ./setup.sh email del [ OPTIONS... ] <EMAIL ADDRESS>
+        ./setup.sh email restrict <add|del|list> <send|receive> [<EMAIL ADDRESS>]
+        ./setup.sh email list
+    ...
+EXAMPLES
+	./setup.sh email add test@domain.tld
+	...
+```
+
+最后在`mailserver1`添加`yzh@mailserver1.com`的邮箱，`mailserver2`添加`yzh@mailserver2.com`的邮箱。
+
+![mailserver1 email list](mail-pic/6.png)
+
+![mailserver2 email list](mail-pic/7.png)
+
+#### 2.2.3.3 邮件客户端配置与邮件收发
+
+首先修改主机hosts文件，指定`mailserver1.com`与`mailserver2.com`的地址。
+
+配置Thunderbird，将两邮件账户与相应的电子邮件服务器均添加到电子邮件客户端中，实验中我们smtp选择默认不加密的25端口，且配置IMAP关闭加密，以此方便之后的抓包分析，实际因特网的邮件服务使用加密连接是非常重要的，之后的实验分析部分也可以看到服务器间的smtp连接仍是默认加密的。
+
+<img src="mail-pic/8.png" alt="mail client setting" style="zoom: 67%;" />
+
+`mailserver2`的邮件客户端配置略过，配置完成后于邮箱列表中看到邮件服务器上相应的文件夹配置，表明我们的邮件客户端已经成功的通过IMAP与MDA建立了通信。
+
+<img src="mail-pic/9.png" alt="client list" style="zoom:80%;" />
+
+接下来我们对smtp发送电子邮件进行测试，使用`yzh@mailserver1.com`新建一封发送给`yzh@mailserver2.com`的测试邮件进行发送。
+
+<img src="mail-pic/10.png" alt="testing mail" style="zoom:75%;" />
+
+发送后，一小段时间，`yzh@mailserver2.com`的收件箱就出现了我们刚刚发送的邮件，测试发件收件过程成功。
+
+<img src="mail-pic/11.png" alt="notification" style="zoom: 67%;" />
+
+<img src="mail-pic/12.png" alt="received content" style="zoom:75%;" />
+
+### 2.2.4 实验分析
+
+我们已经成功利用架构的邮件服务器达成了邮件发送，从使用者的感知到了邮件服务的正常运作，本部分将再次重复发件的过程，利用Wireshark抓包，具体分析邮件发送过程中运输层具体发生了什么。
+
+启动Wireshark，于vmnet8虚拟局域网上进行抓包，配置过滤器只抓取25与143端口的tcp包以忽略非邮件系统产生的tcp与udp通讯。
+
+<img src="mail-pic/13.png" alt="wireshark overview" style="zoom:50%;" />
+
+我们将通过`yzh@mailserver2.com`对之前的测试邮件进行回复 ，再检查该过程中的抓包结果。
+
+<img src="mail-pic/14.png" alt="reply mail" style="zoom:65%;" />
+
+在抓取的tcp包中找到协议显示为SMTP/IMF与IMAP/IMF，在Wireshark对包的解析中，可以看到被电子邮件在传输层是以何种格式进行传输的，虽然Wireshark的解析不支持中文编码，但英文部分的邮件内容可以清晰的分辨。可以发现数据包中标识了大量的信息，许多信息在邮件客户端中对用户而言是透明，而在抓包分析时则发现远超用户所见的信息将在客户端与邮件服务器间通讯。
+
+<img src="mail-pic/15.png" alt="smtp tcpdump" style="zoom:50%;" />
+
+<img src="mail-pic/16.png" alt="imap tcpdump" style="zoom:50%;" />
+
+另外，除了我们我们不加密的明文SMTP与IMAP通信外，可以看到两台邮件服务器间的通信进行了加密，我们无法从抓包的内容中直接捕获到邮件内容，保证了信息传输的安全性。
+
+<img src="mail-pic/17.png" alt="encrypted smtp" style="zoom:50%;" />
+
+接下来，我们结合抓包分析SMTP发送中的三个阶段过程，图中对关键部分做了标注：
+<img src="mail-pic/18.png" alt="three steps in smtp" style="zoom:75%;" />
+
+1. 建立连接：客户端发现有邮件需要发送，与接收方的25端口建立TCP连接，此时SMTP服务器返回`220 Service Ready`告知客户端服务就绪，注意到图中标识协议为ESMTP，即拓展的SMTP，所以才能够收发非ASCII码的中文字符；然后客户端向服务器发送EHLO命令（在SMTP中应发送HELO，而ESMTP为了区分服务器的对拓展协议的支持性，将命令修改为EHLO），服务器应答`250 OK`表示有能力接收ESMTP发送的邮件；最后客户端利用AUTH命令进行身份验证，服务器返回`235 Authentication OK`表示验证通过，允许客户端进行邮件发送。
+2. 邮件传送：邮件传送从MAIL命令开始，服务器继续应答`250 OK`表示准备好接收，紧接着RCPT命令指定收件人，服务器返回`250 OK`表明接收方验证成功，由于仅有一个收件人，故仅有一条RCPT指令；客户端发送DATA指令表示开始传送邮件内容，服务器返回`354`告知客户端邮件数据应当以`<回车>.<回车>`的格式标识结束；接收完毕后，服务器返回`250 OK`表明邮件收到了。
+3. 连接释放：客户端最后发送QUIT命令，告知服务器断开连接，而服务器返回`221`同意释放tcp连接，关闭服务，至此一次完整的SMTP连接完成了。
 
 # 3 拓展性实践
