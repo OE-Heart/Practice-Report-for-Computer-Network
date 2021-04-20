@@ -1507,15 +1507,15 @@ $ ali https://enroll.zjuqsc.com/api/db -d=60s
 
 这是在攻击过程中我们服务的概况。可以看出，我们刚刚部署的服务出现了非常非常多的请求，用箭头上的原点表示。而右边的柱状图告诉我们，在这次攻击过程中，有 99.86% 的 HTTP 请求都得到了 `200 OK` 响应，可见这个服务还是非常稳定的。  
 
-![Screenshot from 2021-04-11 15-15-45](picture/Screenshot from 2021-04-11 15-15-45.png)
+![Screenshot01](picture/Screenshot01.png)
 
 尽管大部分请求都得到了预期内的响应，但我们还是想了解，我们服务的效率如何——即，我们服务的延迟是否过高。那么我们就应该观察另一张图表：  
 
-![Screenshot from 2021-04-11 15-18-50](picture/Screenshot from 2021-04-11 15-18-50.png)
+![Screenshot02](picture/Screenshot02.png)
 
 请看右侧的“响应耗时”图表。青色的线是平均响应耗时，绿色的线表示 “在所有响应中，。99%的响应小于的时长”（一般简称 `p99`）。在全过程中，我们服务的平均响应时长在 20 秒内；而 p99 值最开始很高，但很快下降到了 22.6 ms。可以看出，在这次拒绝访问攻击中，我们的服务依然在高效且稳定地运行。  
 
-![Screenshot from 2021-04-11 15-19-21](picture/Screenshot from 2021-04-11 15-19-21.png)
+![Screenshot03](picture/Screenshot03.png)
 
 这是我们服务响应耗时的散点图。观察此图，可获得与上面的折线图相同的结论。  
 
