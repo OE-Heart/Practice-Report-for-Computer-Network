@@ -593,11 +593,371 @@ ip route 192.168.1.0 255.255.255.0 10.0.0.1
 
 ---
 
-
-
 # 2 网络应用服务架构
 
+## 2.1 WWW/Web 服务架构
 
+### 2.1.1 实验原理
+
+#### HTTP
+
+HTTP是万维网的数据通信的基础，全名为超文本传输协议 (HyperText Transfer Protocol) 是一种用于分布式、协作式和超媒体信息系统的应用层协议，目的是为了提供一种发布和接收 HTML 页面的方法。  
+HTTP/1.1协议中共定义了八种方法（也叫“动作”）来以不同方式操作指定的资源： 本次实验中主要使用的 HTTP 方法 (Method) 为 `GET`，代表向指定的资源发出“显示”请求。  
+HTTP 会话中，有 **请求** (Request) 和 **响应** (Response) 。  
+请求包括以下几个信息：  
+- 请求行 (Method + URL + HTTP Version)
+- 请求头 (Headers)
+- 空行
+- 其他消息体 (Body)
+HTTP 响应类似于请求，不过响应行略有不同：首先为当前HTTP版本号，再来是状态代码，以及描述状态的短语。HTTP 状态码代表此次 HTTP 会话的状态：如实验结果中出现的 `200` 和 `301`，前者代表请求已成功被服务器接收、理解、并接受，后者代表需要后续操作才能完成这一请求，通常用于重定向。   
+
+#### SSL/TLS
+
+传输层安全性协议 (Transport Layer Security，缩写：TLS) 及其前身安全套接层 (Secure Sockets Layer，缩写：SSL) 是一种安全协议，目的是为互联网通信提供安全及数据完整性保障。  
+TLS协议采用主从式架构模型，用于在两个应用程序间透过网络创建起安全的连线，防止在交换资料时受到窃听及篡改。  
+TLS协议的优势是与高层的应用层协议（如HTTP、FTP、Telnet等）无耦合。应用层协议能透明地运行在TLS协议之上，由TLS协议进行创建加密通道需要的协商和认证。应用层协议传送的数据在通过TLS协议时都会被加密，从而保证通信的私密性。  
+TLS协议是可选的，必须配置客户端和服务器才能使用。主要有两种方式实现这一目标：一个是使用统一的TLS协议端口（例如：用于HTTPS的端口443）；另一个是客户端请求服务器连接到TLS时使用特定的协议机制（例如：电子邮件常用的STARTTLS）。一旦客户端和服务器都同意使用TLS协议，他们通过使用一个握手过程协商出一个有状态的连接以传输数据。通过握手，客户端和服务器协商各种参数用于创建安全连接：   
+- 当客户端连接到支持TLS协议的服务器要求创建安全连接并列出了受支持的密码包（包括加密算法、散列算法等），握手开始。
+- 服务器从该列表中决定密码包，并通知客户端。
+- 服务器发回其数字证书，此证书通常包含服务器的名称、受信任的证书颁发机构（CA）和服务器的公钥。
+- 客户端确认其颁发的证书的有效性。
+- 为了生成会话密钥用于安全连接，客户端使用服务器的公钥加密随机生成的密钥，并将其发送到服务器，只有服务器才能使用自己的私钥解密。
+- 利用随机数，双方生成用于加密和解密的对称密钥。这就是TLS协议的握手，握手完毕后的连接是安全的，直到连接（被）关闭。如果上述任何一个步骤失败，TLS握手过程就会失败，并且断开所有的连接。
+
+#### Web Server
+
+网页服务器 (Web Server) 一词有两个意思：  
+- 一台负责提供网页的电脑
+- 一个提供网页的服务器程序
+本实验中指后者。  
+每一个网页服务器程序都需要从网络接受HTTP请求，然后提供HTTP回复给请求者。HTTP回复一般包含一个HTML文件，有时也可以包含纯文本文件、图像或其他类型的文件。  
+常见的网页服务器有 Apache / Nginx / IIS 等。  
+
+#### Reverse Proxy
+
+反向代理 (Reverse Proxy) 在电脑网络中是代理服务器的一种。服务器根据客户端的请求，从其关系的一组或多组后端服务器（如 Web 服务器）上获取资源，然后再将这些资源返回给客户端，客户端只会得知反向代理的IP地址，而不知道在代理服务器后面的服务器集群的存在。  
+与前向代理不同，前向代理作为客户端的代理，将从互联网上获取的资源返回给一个或多个的客户端，服务端只知道代理的IP地址而不知道客户端的IP地址；而反向代理是作为服务端的代理使用，而不是客户端。客户端借由前向代理可以间接访问很多不同互联网服务器（集群）的资源，而反向代理是供很多客户端都通过它间接访问不同后端服务器上的资源，而不需要知道这些后端服务器的存在，而以为所有资源都来自于这个反向代理服务器。  
+反向代理常用于：  
+- 对客户端隐藏服务器（集群）的IP地址
+- 作为应用层防火墙，为网站提供对基于Web的攻击行为（例如DoS/DDoS）的防护，更容易排查恶意软件等
+- 为后端服务器（集群）统一提供加密和SSL加速（如SSL终端代理）
+- 负载均衡，若服务器集群中有负荷较高者，反向代理通过URL重写，根据连线请求从负荷较低者获取与所需相同的资源或备援
+- 对于静态内容及短时间内有大量访问请求的动态内容提供缓存服务
+- 对一些内容进行压缩，以节约带宽或为网络带宽不佳的网络提供服务
+减速上传
+- 为在私有网络下（如局域网）的服务器集群提供NAT穿透及外网发布服务
+
+### 2.1.2 实验说明和任务
+
+#### 2.1.2.1 实验说明
+
+传统 WWW 服务器的 LAMP 架构在现代 Web 应用复杂化的影响下已经不再足以适用，因此在本实验中，并不采直接使 Nginx/Apache 等服务器 Serve content 的方式，而是让它们作为反向代理服务器和 SSL/TLS 的终止点，将流量转发到内部 Web 服务（其他端口或私网中其他服务器），提高拓展性、安全性。  
+为了方便起见，本次实验的 Web 服务为简单的网站，并且将重点放在测试 HTTP Request/Response 和 TLS 是否成功，如何取得主机、购买域名和设计网站并不在本次实验的范围内。  
+
+#### 2.1.2.2 实验任务
+
+- 认识并了解构成 WWW 的主要网络协议 (HTTP/SSL/TLS...)
+- 透过部署网站的方式学习如何部署 Web 服务
+- 配置 Web 服务器和反向代理服务器
+
+### 2.1.3 实验环境
+
+#### 在公网内的主机 / 测试服务器
+
+##### OS
+
+Debian 10 (buster)
+
+##### IP Address
+
+66.42.40.90
+
+##### Domain Name
+
+dinoallo.xyz, Web Service: www.dinoallo.xyz
+
+##### Proxy
+
+Nginx
+
+##### Web Server （应用中的服务器）
+
+Mojo::Server::Hypnotoad 8.12
+
+#### 测试客户端
+
+##### OS
+
+Gentoo (Kernel version: 5.11.6)
+
+##### Browser/User Agent
+
+- cURL 7.75.0
+- Chromium 89
+
+### 2.1.4 实验内容与结果
+
+#### 2.1.4.1 检测客户端与服务器是否连通
+
+我们的 Nginx (Proxy Server) 须监听 `80` / `443` 端口，如果服务器有防火墙可能导致外界无法访问这些端口，因此在防火墙配置中开启 `80` / `443` 端口后，使用 `traceroute` 程序检查 TCP Packet 是否能送达服务器：  
+```shell
+# sudo traceroute -T 66.42.40.90
+traceroute to 66.42.40.90 (66.42.40.90), 30 hops max, 60 byte packets
+ 1  10.185.127.254 (10.185.127.254)  7.707 ms  7.641 ms  7.623 ms
+ 2  * * *
+ 3  10.3.8.61 (10.3.8.61)  9.885 ms  9.870 ms  9.853 ms
+ 4  * * *
+ 5  * * *
+ 6  * * *
+ 7  * * *
+ 8  * * *
+ 9  * * *
+10  * * *
+11  101.4.116.126 (101.4.116.126)  47.628 ms 101.4.116.206 (101.4.116.206)  47.60
+1 ms 101.4.116.114 (101.4.116.114)  50.011 ms
+12  101.4.114.57 (101.4.114.57)  36.038 ms  36.022 ms  49.880 ms
+...
+23  66.42.40.90.vultr.com (66.42.40.90)  207.017 ms *  194.903 ms
+```
+可以看得出来 Packet 经过多个节点(Gateway)，从客户端到服务器，从私网（客户端在学校的校网中）到公网。
+
+#### 2.1.4.2 验证域名配置正确
+
+在取得域名后，在 DNS 服务商提供的服务下将域名解析到主机，用 `dig` 程序检查 DNS 服务正确：  
+```shell
+# dig www.dinoallo.xyz
+
+; <<>> DiG 9.16.12 <<>> www.dinoallo.xyz
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52456
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 13, ADDITIONAL: 27
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: 980ead94935b5cbb18cc6fae607f1bf173a20424ba80b160 (good)
+;; QUESTION SECTION:
+;www.dinoallo.xyz.              IN      A
+
+;; ANSWER SECTION:
+www.dinoallo.xyz.       571     IN      CNAME   dinoallo.xyz.
+dinoallo.xyz.           1800    IN      A       66.42.40.90
+...
+```
+可以看出 DNS 解析正确，返回了主机 IP Address 。
+
+#### 2.1.4.3 部署网站服务
+
+##### 设计服务路由
+
+由于Nginx 并不是我们真正 Serve 内容的服务器，承担此任务的服务器便属于编写的网站服务的一部分。  
+一个网站可能含有多个页面。例如客户端若访问 `www.dinoallo.xyz/` 则其应该得到首页的 Response，而若其访问 `www.dinoallo.xyz/blog` 则其应该得到博客页面的 Response，为了实现这种功能，我们在设计服务时应编写服务路由，根据 URL 的不同来判断返回哪种类型的 Response。  
+整个网站服务使用 Perl 语言编写，由于网站设计不是本次实验的重点，因此此部分省略，只列出部分编写的服务路由：  
+```perl
+# myapp.pl
+#!/usr/bin/env perl
+use Mojolicious::Lite -signatures; # Web framework that we use.
+
+get '/' => sub ($c) {
+  $c->render(template => 'index', format => 'html');
+}; # Website frontpage
+get '/blog' => sub($c) {
+  $c = $c->redirect_to('/blog/index.html');
+}; # Website blog pages
+
+app->start;
+```
+
+##### 部署服务
+
+为了方便和效率，我们采用现成的 `Mojo::Server::Hypnotoad` 服务器，此服务器轻量快速且与我们的程序兼容性极好。  
+为了使我们的服务作为守护进程 (daemon) 运行，我们可以编写如下初始化文件 `www.service`：  
+```shell
+# /etc/systemd/system/www.service
+[Unit]
+Description=My Amazing Website
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/home/mojo/myapp/script/hypnotoad.pid
+ExecStart=/path/to/hypnotoad /home/mojo/myapp/myapp.pl
+ExecReload=/path/to/hypnotoad /home/mojo/myapp/myapp.pl
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+```
+此文件的 `ExecStart` 和 `ExecReload` 说明让前面所提到的服务器运行我们的服务程序。  
+准备就绪后，运行以下命令部署服务：  
+```shell
+sudo systemctl enable www.service
+sudo systemctl start start www.service
+```
+
+##### 验证服务是否正确运行
+
+我们可以运行命令 `sudo ss -nltp | grep www` ：  
+```shell
+LISTEN    0         128                0.0.0.0:8080             0.0.0.0:*        users:(("/srv/den/www/my",pid=13407,fd=3),("/srv/den/www/my",pid=13406,fd=3),("/srv/den/www/my",pid=13405,fd=3),("/srv/den/www/my",pid=13404,fd=3),("/srv/den/www/my",pid=13403,fd=3))
+```
+从结果中可以看出当前服务已经监听了本地的 `8080` 端口。  
+
+#### 2.1.4.4 外网访问配置
+
+##### 配置 SSL/TLS
+
+实验中我们所使用的证书由 **letsencrypt** 签发，我们使用 `certbot` 程序来方便申请、撤销、更新证书，这里不详细说明：  
+```shell
+sudo certbot certonly --standalone --preferred-challenges http -d www.dinoallo.xyz
+```
+查看申请的证书：  
+```shell
+# sudo certbot certificates
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Found the following certs:
+  Certificate Name: www.dinoallo.xyz
+    Domains: www.dinoallo.xyz
+    Expiry Date: 2021-07-19 15:31:24+00:00 (VALID: 89 days)
+    Certificate Path: /etc/letsencrypt/live/www.dinoallo.xyz/fullchain.pem
+    Private Key Path: /etc/letsencrypt/live/www.dinoallo.xyz/privkey.pem
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+```
+所需证书和私钥放置在 `/etc/letsencrypt/live/www.dinoallo.xyz` 文件夹下。  
+
+##### 反向代理配置 (Nginx)
+
+配置文件如下：  
+```nginx
+upstream myapp{
+        server 127.0.0.1:8080; // 配置监听在 8080 端口网站服务器 myapp
+}
+server {
+
+        server_name www.dinoallo.xyz;
+        location / {
+                proxy_pass http://myapp; // 将流量转发到 myapp
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        listen 443 ssl; # managed by Certbot // 监听 443 端口 (HTTPS)
+                ssl_certificate /etc/letsencrypt/live/www.dinoallo.xyz/fullchain.pem; # managed by Certbot // 证书
+                ssl_certificate_key /etc/letsencrypt/live/www.dinoallo.xyz/privkey.pem; # managed by Certbot // 私钥
+                include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+
+server { // 如果客户端未使用 HTTPS ，将其重定向到 HTTPS
+        if ($host = www.dinoallo.xyz) {
+                return 301 https://$host$request_uri;
+        } # managed by Certbot
+
+        listen 80; // 监听 80 端口 (HTTP)
+
+        server_name www.dinoallo.xyz;
+        return 404; # managed by Certbot
+}
+```
+为了验证配置正确，运行 `sudo nginx -t` 命令：  
+```shell
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+在我们安装 Nginx 在主机上时，就已经附了一个守护进程初始化的配置文件了，仿照先前启动 Nginx：  
+```shell
+# sudo ss -nltp | grep nginx
+LISTEN    0         128                0.0.0.0:80               0.0.0.0:*        users:(("nginx",pid=16447,fd=8),("nginx",pid=12864,fd=8))
+LISTEN    0         128                0.0.0.0:443              0.0.0.0:*        users:(("nginx",pid=16447,fd=10),("nginx",pid=12864,fd=10))
+```
+由结果中可看出 Nginx 已经监听 `80` 和 `443` 端口了。  
+此一阶段结束后，我们的网站应能顺利上线（能在外网访问）了。  
+
+#### 2.1.4.5 网站访问测试
+
+测试时使用的 User agent 为 `curl` 程序（方便查看握手、请求和响应）和常见浏览器 Chromium 。  
+
+##### 测试 HTTPS
+
+```shell
+# curl -v https://www.dinoallo.xyz
+*   Trying 66.42.40.90:443...
+* Connected to www.dinoallo.xyz (66.42.40.90) port 443 (#0)
+...
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS handshake, Server key exchange (12):
+* TLSv1.2 (IN), TLS handshake, Server finished (14):
+* TLSv1.2 (OUT), TLS handshake, Client key exchange (16):
+* TLSv1.2 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS handshake, Finished (20):
+* TLSv1.2 (IN), TLS handshake, Finished (20):
+* SSL connection using TLSv1.2 / ECDHE-RSA-CHACHA20-POLY1305             [90/195]
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: CN=www.dinoallo.xyz
+*  start date: Apr 20 15:31:24 2021 GMT
+*  expire date: Jul 19 15:31:24 2021 GMT
+*  subjectAltName: host "www.dinoallo.xyz" matched cert's "www.dinoallo.xyz"
+*  issuer: C=US; O=Let's Encrypt; CN=R3
+*  SSL certificate verify ok.
+> GET / HTTP/1.1
+> Host: www.dinoallo.xyz
+> User-Agent: curl/7.75.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Server: nginx/1.14.2
+< Date: Tue, 20 Apr 2021 18:02:34 GMT
+< Content-Type: text/html;charset=UTF-8
+< Content-Length: 2694
+< Connection: keep-alive
+< Vary: Accept-Encoding
+<
+... （以下为 Response body）
+```
+
+从本次 HTTP 请求中可以看到先有 TLS 握手并成功，因此本次请求是 HTTPS 。  
+
+##### 测试强制 HTTPS
+```shell
+# curl -v http://www.dinoallo.xyz
+*   Trying 66.42.40.90:80...
+* Connected to www.dinoallo.xyz (66.42.40.90) port 80 (#0)
+> GET / HTTP/1.1
+> Host: www.dinoallo.xyz
+> User-Agent: curl/7.75.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 301 Moved Permanently
+< Server: nginx/1.14.2
+< Date: Tue, 20 Apr 2021 18:06:24 GMT
+< Content-Type: text/html
+< Content-Length: 185
+< Connection: keep-alive
+< Location: https://www.dinoallo.xyz/
+<
+... （以下为 Response body）
+```
+本次 HTTP 请求中得到的状态码为 `301` ，`Location` 为 `https://www.dinoallo.xyz/`，代表我们重定向成功。 
+
+##### 浏览器访问
+
+访问首页：  
+![Visiting the frontpage](./www-pic/frontpage.png)
+访问博客：  
+![Visiting the blog](./www-pic/blog.png)
 
 ## 2.2 电子邮件服务架构
 
