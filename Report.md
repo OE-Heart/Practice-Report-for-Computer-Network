@@ -595,7 +595,7 @@ ip route 192.168.1.0 255.255.255.0 10.0.0.1
 
 # 2 网络应用服务架构
 
-## 2.1 WWW/Web 服务架构
+## 2.1 WWW / Web 服务架构
 
 ### 2.1.1 实验原理
 
@@ -832,13 +832,13 @@ Found the following certs:
 配置文件如下：  
 ```nginx
 upstream myapp{
-        server 127.0.0.1:8080; // 配置监听在 8080 端口网站服务器 myapp
+        server 127.0.0.1:8080; # 配置监听在 8080 端口网站服务器 myapp
 }
 server {
 
         server_name www.dinoallo.xyz;
         location / {
-                proxy_pass http://myapp; // 将流量转发到 myapp
+                proxy_pass http://myapp; # 将流量转发到 myapp
                 proxy_http_version 1.1;
                 proxy_set_header Upgrade $http_upgrade;
                 proxy_set_header Connection "upgrade";
@@ -847,21 +847,21 @@ server {
                 proxy_set_header X-Forwarded-Proto $scheme;
         }
         
-        listen 443 ssl; # managed by Certbot // 监听 443 端口 (HTTPS)
-                ssl_certificate /etc/letsencrypt/live/www.dinoallo.xyz/fullchain.pem; # managed by Certbot // 证书
-                ssl_certificate_key /etc/letsencrypt/live/www.dinoallo.xyz/privkey.pem; # managed by Certbot // 私钥
+        listen 443 ssl; # managed by Certbot # 监听 443 端口 (HTTPS)
+                ssl_certificate /etc/letsencrypt/live/www.dinoallo.xyz/fullchain.pem; # managed by Certbot # 证书
+                ssl_certificate_key /etc/letsencrypt/live/www.dinoallo.xyz/privkey.pem; # managed by Certbot # 私钥
                 include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
                 ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
 }
 
 
-server { // 如果客户端未使用 HTTPS ，将其重定向到 HTTPS
+server { # 如果客户端未使用 HTTPS ，将其重定向到 HTTPS
         if ($host = www.dinoallo.xyz) {
                 return 301 https://$host$request_uri;
         } # managed by Certbot
 
-        listen 80; // 监听 80 端口 (HTTP)
+        listen 80; # 监听 80 端口 (HTTP)
 
         server_name www.dinoallo.xyz;
         return 404; # managed by Certbot
