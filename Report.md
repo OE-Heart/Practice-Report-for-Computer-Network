@@ -7,7 +7,6 @@
 <center><font face="黑体" size="6">数据通信与计算机网络课后实践</font>
 
 
-
 <img src="picture/2.png" alt="2" style="zoom:90%;" />
 
 <center>
@@ -28,8 +27,6 @@
 <center>
     <font face="楷体" size="5">3190102305 赵紫宸</font>
 </center>
-
-
 <center>
     <font face="楷体" size="5">课程名称：数据通信与计算机网络</font>
 </center>
@@ -201,8 +198,6 @@ exit
 |  4   |  Host1   |  Host5   |  host (10.0.101.5) not reachable  |
 |  5   |  Host1   |  Host6   | host (10.0.101.254) not reachable |
 
-分析
-
 #### 对二层交换机 SW2 进行配置并测试网络连通性
 
 开启交换机 SW2，打开 SW2 的命令控制台窗口，按照规划在交换机 SW2 上配置 VLAN，并将相关端口设置成 access 端口或 trunk 端口。 配置过程同 SW1。
@@ -222,8 +217,6 @@ exit
 |  3   |  Host1   |  Host4   |  host (10.0.101.4) not reachable  |
 |  4   |  Host1   |  Host5   |  host (10.0.101.5) not reachable  |
 |  5   |  Host1   |  Host6   | host (10.0.101.254) not reachable |
-
-分析
 
 #### 在三层交换机 R1 中创建 VLAN、设置 trunk 接口并测试网络连通性
 
@@ -261,8 +254,6 @@ exit
 |  4   |  Host1   |  Host5   |              success              |
 |  5   |  Host1   |  Host6   | host (10.0.101.254) not reachable |
 
-分析
-
 #### 配置三层交换机 R1 的 SVI 接口、开启路由功能并测试网络连通性
 
 此步骤中， 启用三层交换机 R1上 VLAN10 和 VLAN20的 SVI 接口，给他们配置 IP 地址。 开启三层交换机 R1的路由功能（ip routing），然后测试跨交换机相同 VLAN 之间的通信和不同 VLAN 之间的通信。
@@ -296,8 +287,6 @@ exit
 |  3   |  Host1   |  Host4   |    success     |
 |  4   |  Host1   |  Host5   |    success     |
 |  5   |  Host1   |  Host6   |    success     |
-
-分析
 
 
 
@@ -465,8 +454,6 @@ write
 |  27  |  Host5   | R2 / F1/0 |           success            |
 |  28  |  Host5   | R2 / F1/1 |           success            |
 
-分析
-
 #### 配置路由器 R1 的静态路由并测试连通性
 
 在路由器 R1 中，添加到达 192.168.2.0/24 和 192.168.3.0/24 这两个网络的路由信息，配置命令如下。
@@ -560,8 +547,6 @@ ip route 192.168.1.0 255.255.255.0 10.0.0.1
 |  26  |  Host5   | R2 / F0/0 |    success     |
 |  27  |  Host5   | R2 / F1/0 |    success     |
 |  28  |  Host5   | R2 / F1/1 |    success     |
-
-分析
 
 ---
 
